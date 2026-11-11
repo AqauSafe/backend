@@ -1,0 +1,17 @@
+# AquaSafe broker ACLs.
+#
+# Device usernames are their device IDs. The backend uses the
+# MQTT_USERNAME configured in .env (default: aquasafe-backend).
+
+user aquasafe-backend
+topic readwrite aquasafe/v1/#
+
+# Per-device topics use the MQTT username as the device ID.
+pattern readwrite aquasafe/v1/devices/%u/telemetry
+pattern readwrite aquasafe/v1/devices/%u/events
+pattern readwrite aquasafe/v1/devices/%u/heartbeat
+pattern write aquasafe/v1/devices/%u/status
+pattern write aquasafe/v1/devices/%u/command-acks
+pattern write aquasafe/v1/devices/%u/config-ack
+pattern read aquasafe/v1/devices/%u/commands
+pattern read aquasafe/v1/devices/%u/config

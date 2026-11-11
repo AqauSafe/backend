@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.env.*
+!.env.example
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+staticfiles/
+media/
+db.sqlite3
+
+# Generated broker credentials and runtime data
+mosquitto/config/passwd
+mosquitto/config/acl.generated
+mosquitto/data/*
+!mosquitto/data/.gitkeep
+
+# Firmware build artefacts and local secrets
+firmware/**/.pio/
+firmware/**/secrets.h
+firmware/**/config.local.h

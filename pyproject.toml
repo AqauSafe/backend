@@ -1,0 +1,55 @@
+[project]
+name = "aquasafe-backend"
+version = "0.1.0"
+description = "AquaSafe aquaculture management web backend"
+requires-python = ">=3.13"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "djangorestframework>=3.18,<3.19",
+    "django-cors-headers>=4.9,<5",
+    "django-filter>=26.2,<27",
+    "djangorestframework-simplejwt>=5.5,<5.6",
+    "drf-spectacular>=0.30,<0.31",
+    "channels>=4.3,<4.4",
+    "channels-redis>=4.3,<4.4",
+    "daphne>=4.2,<4.3",
+    "celery>=5.7,<5.8",
+    "redis>=8.1,<9",
+    "psycopg[binary]>=3.3,<3.4",
+    "argon2-cffi>=25.1,<26",
+    "django-environ>=0.14,<0.15",
+    "cryptography>=50,<51",
+    "paho-mqtt>=2.2,<3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2,<10",
+    "pytest-django>=4.14,<5",
+    "pytest-asyncio>=1.4,<2",
+    "fakeredis>=2.40,<3",
+    "ruff>=0.17,<0.18",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
+addopts = "-ra"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "DJ"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config", "integrations"]

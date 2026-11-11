@@ -1,0 +1,6 @@
+# Example only. Generate the real shell file with:
+#   make broker-init
+#
+# The generated file is ignored by git and must never be committed.
+# Format: username:password-hash
+aquasafe-backend:$7$101$example-placeholder
