@@ -28,12 +28,25 @@ class DeviceSerializer(serializers.ModelSerializer):
             "hardware_model",
             "firmware_version",
             "last_seen_at",
+            "claim_expires_at",
+            "provisioned_at",
+            "config_version",
+            "config",
             "client_id",
             "metadata",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "last_seen_at", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "last_seen_at",
+            "claim_expires_at",
+            "provisioned_at",
+            "config_version",
+            "config",
+            "created_at",
+            "updated_at",
+        )
         validators = []
 
     def validate(self, attrs):
@@ -85,3 +98,8 @@ class ActuatorSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "created_at", "updated_at")
+
+
+class ClaimDeviceSerializer(serializers.Serializer):
+    device_id = serializers.CharField(max_length=100)
+    claim_token = serializers.CharField(max_length=200, trim_whitespace=False)

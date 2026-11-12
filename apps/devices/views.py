@@ -1,13 +1,33 @@
 """Device registry API views."""
 
-from rest_framework import viewsets
-from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.audit.services import log_event
+from apps.common.camel import camelize
 from apps.devices.models import Actuator, Device, Sensor
-from apps.devices.serializers import ActuatorSerializer, DeviceSerializer, SensorSerializer
-from apps.farms.access import accessible_farms, can_write_farm
+from apps.devices.provisioning import claim_device, device_topics, issue_claim_token
+from apps.devices.serializers import (
+    ActuatorSerializer,
+    ClaimDeviceSerializer,
+    DeviceSerializer,
+    SensorSerializer,
+)
+from apps.farms.access import accessible_farms, can_manage_farm, can_write_farm
+from integrations.mqtt.publishing import publish_message
+from integrations.mqtt.topics import config_topic
+
+
+class MQTTUnavailable(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "The MQTT broker is unavailable."
+    default_code = "mqtt_unavailable"
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -76,6 +96,105 @@ class DeviceViewSet(viewsets.ModelViewSet):
             request=self.request,
         )
         instance.delete()
+
+    @extend_schema(request=None, responses={200: OpenApiTypes.OBJECT})
+    @action(detail=True, methods=["post"], url_path="provision")
+    def provision(self, request, pk=None):
+        device = self.get_object()
+        if not can_manage_farm(request.user, device.farm):
+            raise PermissionDenied("You cannot provision this device.")
+        token = issue_claim_token(device)
+        log_event(
+            actor=request.user,
+            action="device.provisioning_token_issued",
+            entity_type="device",
+            entity_id=str(device.id),
+            request=request,
+        )
+        return Response(
+            {
+                "data": {
+                    "device_id": device.device_id,
+                    "claim_token": token,
+                    "claim_expires_at": device.claim_expires_at,
+                    "topics": device_topics(device),
+                }
+            }
+        )
+
+    @extend_schema(request=OpenApiTypes.OBJECT, responses={200: OpenApiTypes.OBJECT})
+    @action(detail=True, methods=["post"], url_path="config")
+    def publish_config(self, request, pk=None):
+        device = self.get_object()
+        if not can_manage_farm(request.user, device.farm):
+            raise PermissionDenied("You cannot configure this device.")
+        config = request.data.get("config", request.data)
+        if not isinstance(config, dict):
+            raise ValidationError({"config": "Configuration must be a JSON object."})
+        version = device.config_version + 1
+        try:
+            publish_message(
+                config_topic(device.device_id),
+                {"version": version, "config": camelize(config)},
+                qos=1,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise MQTTUnavailable(f"Unable to publish configuration: {exc}") from exc
+        device.config = config
+        device.config_version = version
+        device.save(update_fields=["config", "config_version", "updated_at"])
+        log_event(
+            actor=request.user,
+            action="device.config_published",
+            entity_type="device",
+            entity_id=str(device.id),
+            metadata={"version": version},
+            request=request,
+        )
+        return Response(
+            {
+                "data": {
+                    "device_id": device.device_id,
+                    "version": version,
+                    "config": device.config,
+                }
+            }
+        )
+
+
+class DeviceClaimView(APIView):
+    authentication_classes: list = []
+    permission_classes = [AllowAny]
+    throttle_scope = "provision"
+
+    @extend_schema(request=ClaimDeviceSerializer, responses={200: OpenApiTypes.OBJECT})
+    def post(self, request):
+        serializer = ClaimDeviceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        device, password, command_secret = claim_device(
+            serializer.validated_data["device_id"],
+            serializer.validated_data["claim_token"],
+        )
+        log_event(
+            actor=None,
+            action="device.claimed",
+            entity_type="device",
+            entity_id=str(device.id),
+            request=request,
+        )
+        return Response(
+            {
+                "data": {
+                    "device_id": device.device_id,
+                    "mqtt_username": device.device_id,
+                    "mqtt_password": password,
+                    "command_secret": command_secret,
+                    "provisioned_at": device.provisioned_at,
+                    "topics": device_topics(device),
+                }
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class SensorViewSet(viewsets.ModelViewSet):

@@ -15,6 +15,8 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
+DEVICE_SECRET_ENCRYPTION_KEY = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
@@ -22,4 +24,5 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
     "register": "100000/min",
     "password": "100000/min",
     "telemetry": "100000/min",
+    "provision": "100000/min",
 }

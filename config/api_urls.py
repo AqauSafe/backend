@@ -10,5 +10,7 @@ urlpatterns = [
     path("", include("apps.devices.urls")),
     path("", include("apps.telemetry.urls")),
     path("", include("apps.alerts.urls")),
+    path("", include("apps.commands.urls")),
+    path("", include("apps.simulations.urls")),
     path("sync/", include("apps.sync.urls")),
 ]

@@ -22,6 +22,14 @@ class SensorReadingSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     date = serializers.DateTimeField(source="recorded_at", read_only=True)
+    turbidity_ntu = serializers.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        min_value=0,
+        max_value=1000,
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = SensorReading
@@ -38,6 +46,7 @@ class SensorReadingSerializer(serializers.ModelSerializer):
             "oxygen",
             "ph",
             "level",
+            "turbidity_ntu",
             "client_id",
             "message_id",
             "raw",
@@ -54,14 +63,14 @@ class SensorReadingSerializer(serializers.ModelSerializer):
         device = attrs.get("device") if "device" in attrs else getattr(instance, "device", None)
         sensor = attrs.get("sensor") if "sensor" in attrs else getattr(instance, "sensor", None)
 
-        measurement_fields = ("temperature", "oxygen", "ph", "level")
+        measurement_fields = ("temperature", "oxygen", "ph", "level", "turbidity_ntu")
         has_measurement = any(
             (attrs.get(field) if field in attrs else getattr(instance, field, None)) is not None
             for field in measurement_fields
         )
         if not has_measurement:
             raise serializers.ValidationError(
-                "At least one of temperature, oxygen, pH or level is required."
+                "At least one of temperature, oxygen, pH, level or turbidity is required."
             )
         if pond and device and device.farm_id != pond.farm_id:
             raise serializers.ValidationError({"deviceId": "Device belongs to another farm."})

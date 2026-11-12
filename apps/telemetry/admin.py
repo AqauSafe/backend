@@ -12,6 +12,7 @@ class SensorReadingAdmin(admin.ModelAdmin):
         "oxygen",
         "ph",
         "level",
+        "turbidity_ntu",
         "recorded_at",
     )
     list_filter = ("source", "recorded_at")

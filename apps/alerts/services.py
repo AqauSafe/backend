@@ -49,6 +49,7 @@ def evaluate_reading(reading: SensorReading) -> list[Alert]:
             f"{METRIC_LABELS.get(rule.metric, rule.metric)} is {value} "
             f"({rule.get_operator_display()} {rule.threshold})."
         )
+        created = False
         try:
             with transaction.atomic():
                 alert = Alert.objects.create(
@@ -64,10 +65,15 @@ def evaluate_reading(reading: SensorReading) -> list[Alert]:
                     message=message,
                     triggered_at=reading.recorded_at,
                 )
+                created = True
         except IntegrityError:
             alert = Alert.objects.filter(
                 rule=rule, pond=reading.pond, status=Alert.Status.ACTIVE
             ).first()
         if alert is not None:
             generated.append(alert)
+            if created:
+                from apps.notifications.services import queue_alert_notifications
+
+                queue_alert_notifications(alert)
     return generated

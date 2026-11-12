@@ -41,6 +41,7 @@ class SensorReading(TimeStampedModel):
     oxygen = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     ph = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     level = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    turbidity_ntu = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     client_id = models.CharField(max_length=100, blank=True, db_index=True)
     message_id = models.CharField(max_length=100, blank=True, db_index=True)
     raw = models.JSONField(default=dict, blank=True)
@@ -72,7 +73,8 @@ class SensorReading(TimeStampedModel):
 
     def has_measurement(self) -> bool:
         return any(
-            value is not None for value in (self.temperature, self.oxygen, self.ph, self.level)
+            value is not None
+            for value in (self.temperature, self.oxygen, self.ph, self.level, self.turbidity_ntu)
         )
 
 

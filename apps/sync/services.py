@@ -22,6 +22,20 @@ def _client_id(item: dict) -> str:
     return str(value)[:100]
 
 
+def _as_uuid(value):
+    try:
+        return uuid.UUID(str(value))
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def _value(item: dict, *keys: str):
+    for key in keys:
+        if key in item and item[key] is not None and item[key] != "":
+            return item[key]
+    return None
+
+
 def _decimal(value, field: str, *, required: bool = False) -> Decimal | None:
     if value is None or value == "":
         if required:
@@ -36,6 +50,8 @@ def _decimal(value, field: str, *, required: bool = False) -> Decimal | None:
 def _timestamp(value) -> datetime:
     if not value:
         return timezone.now()
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, tz=UTC)
     if isinstance(value, datetime):
         return value if value.tzinfo else value.replace(tzinfo=UTC)
     text = str(value)
@@ -136,6 +152,8 @@ def import_app_data(user, payload: dict) -> dict:
             farm = None
             if client_id:
                 farm = Farm.objects.filter(owner=user, client_id=client_id).first()
+            if farm is None and client_id:
+                farm = Farm.objects.filter(owner=user, id=_as_uuid(client_id)).first()
             if farm is None:
                 farm = Farm.objects.create(
                     owner=user,
@@ -182,6 +200,11 @@ def import_app_data(user, payload: dict) -> dict:
             pond = None
             if client_id:
                 pond = Pond.objects.filter(farm=farm, client_id=client_id).first()
+            if pond is None and client_id:
+                pond = Pond.objects.filter(farm=farm, id=_as_uuid(client_id)).first()
+            status = str(item.get("status") or "").strip().lower()
+            if status not in Pond.Status.values:
+                status = Pond.Status.ACTIVE
             data = {
                 "name": name,
                 "population": int(item.get("population") or 0),
@@ -189,7 +212,7 @@ def import_app_data(user, payload: dict) -> dict:
                 "width": _decimal(item.get("width"), "width") or Decimal("0"),
                 "depth": _decimal(item.get("depth"), "depth") or Decimal("0"),
                 "species": str(item.get("species") or "")[:100],
-                "status": item.get("status") or Pond.Status.ACTIVE,
+                "status": status,
             }
             if pond is None:
                 pond = Pond.objects.create(
@@ -227,6 +250,8 @@ def import_app_data(user, payload: dict) -> dict:
             feeding = None
             if client_id:
                 feeding = Feeding.objects.filter(pond=pond, client_id=client_id).first()
+            if feeding is None and client_id:
+                feeding = Feeding.objects.filter(pond=pond, id=_as_uuid(client_id)).first()
             if feeding is None:
                 feeding = Feeding.objects.create(
                     pond=pond,
@@ -262,8 +287,12 @@ def import_app_data(user, payload: dict) -> dict:
             measurements = {
                 "temperature": _decimal(item.get("temperature"), "temperature"),
                 "oxygen": _decimal(item.get("oxygen"), "oxygen"),
-                "ph": _decimal(item.get("ph") or item.get("pH"), "ph"),
+                "ph": _decimal(_value(item, "ph", "pH"), "ph"),
                 "level": _decimal(item.get("level"), "level"),
+                "turbidity_ntu": _decimal(
+                    _value(item, "turbidityNtu", "turbidity_ntu", "turbidity"),
+                    "turbidityNtu",
+                ),
             }
             if not any(value is not None for value in measurements.values()):
                 raise ValidationError("At least one measurement is required.")
@@ -274,6 +303,8 @@ def import_app_data(user, payload: dict) -> dict:
             reading = None
             if client_id:
                 reading = SensorReading.objects.filter(pond=pond, client_id=client_id).first()
+            if reading is None and client_id:
+                reading = SensorReading.objects.filter(pond=pond, id=_as_uuid(client_id)).first()
             if reading is None:
                 reading = SensorReading.objects.create(
                     pond=pond,

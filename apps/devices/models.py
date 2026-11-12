@@ -37,7 +37,12 @@ class Device(TimeStampedModel):
     firmware_version = models.CharField(max_length=50, blank=True)
     last_seen_at = models.DateTimeField(null=True, blank=True, db_index=True)
     claim_token_hash = models.CharField(max_length=128, blank=True)
+    claim_expires_at = models.DateTimeField(null=True, blank=True)
+    provisioned_at = models.DateTimeField(null=True, blank=True)
     secret_encrypted = models.TextField(blank=True)
+    command_secret_encrypted = models.TextField(blank=True)
+    config_version = models.PositiveIntegerField(default=1)
+    config = models.JSONField(default=dict, blank=True)
     client_id = models.CharField(max_length=100, blank=True, db_index=True)
     metadata = models.JSONField(default=dict, blank=True)
 

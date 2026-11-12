@@ -1,7 +1,9 @@
-"""WebSocket URL routing.
+"""WebSocket URL routing."""
 
-Consumers are added as each realtime feature lands. Keeping the router here
-means the ASGI entry point does not change as features are added.
-"""
+from django.urls import path
 
-websocket_urlpatterns: list = []
+from apps.telemetry.consumers import FarmStreamConsumer
+
+websocket_urlpatterns = [
+    path("ws/farms/<uuid:farm_id>/", FarmStreamConsumer.as_asgi()),
+]

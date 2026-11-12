@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from apps.telemetry.models import SensorReading
@@ -13,6 +15,7 @@ def reading_payload(pond, **overrides):
         "oxygen": "6.2",
         "ph": "7.1",
         "level": "85",
+        "turbidityNtu": "12.4",
         "recordedAt": "2026-11-11T09:00:00Z",
         "clientId": "reading-1",
     }
@@ -30,8 +33,10 @@ def test_create_manual_reading(auth_client, pond):
     assert body["source"] == "manual"
     assert body["temperature"] == "27.50"
     assert body["oxygen"] == "6.20"
+    assert body["turbidityNtu"] == "12.40"
     assert body["date"] == body["recordedAt"]
     reading = SensorReading.objects.get(id=body["id"])
+    assert reading.turbidity_ntu == Decimal("12.40")
     assert reading.recorded_at.isoformat().startswith("2026-11-11T09:00:00")
     assert reading.received_at is not None
 

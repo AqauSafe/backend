@@ -3,7 +3,7 @@
 **Project:** AquaSafe — smart aquaculture management ecosystem  
 **Team:** Tech Sharks — NIMASA National Innovation Hackathon  
 **Document status:** Active  
-**Last updated:** 2026-11-11
+**Last updated:** 2026-11-12
 
 ---
 
@@ -101,10 +101,10 @@ No Node.js backend, Fastify, Prisma or Drizzle will be introduced.
 | 0 | Repository audit | Architecture and gaps documented | Complete |
 | 1 | Django foundation | Runnable backend, auth, RBAC, DB, docs, tests | Complete |
 | 2 | Core aquaculture domain | Farms, ponds, devices, sensors, telemetry, alerts | Complete |
-| 3 | Hardware integration | Mosquitto, MQTT worker, commands, provisioning, firmware foundation | Not started |
-| 4 | Simulation integration | Common telemetry model and simulation APIs | Not started |
+| 3 | Hardware integration | Mosquitto, MQTT worker, commands, provisioning, firmware foundation | In progress |
+| 4 | Simulation integration | Common telemetry model and simulation APIs | Complete |
 | 5 | Application ecosystem | Marketplace, messaging, support, installations, subscriptions | Not started |
-| 6 | Frontend integration | Feature-flagged API client with localStorage fallback | Not started |
+| 6 | Frontend integration | Feature-flagged API client with localStorage fallback | In progress |
 | 7 | Verification and deployment | End-to-end tests, security review, deployment documentation | Not started |
 
 Demo-critical path: **Phase 1 → Phase 2 → Phase 3 → Phase 4**. Phase 5 and Phase 6 follow without blocking the core hardware/software demonstration.
@@ -211,43 +211,46 @@ Demo-critical path: **Phase 1 → Phase 2 → Phase 3 → Phase 4**. Phase 5 and
 
 **Goal:** Secure, reliable device communication through Mosquitto and a firmware foundation that works offline.
 
+**Status:** In progress. Web backend and firmware foundation are implemented and covered by host tests. Live broker integration, target compilation, flashing, and hardware validation remain outstanding.
+
 ### Web backend tasks
 
-- [ ] Finalise Mosquitto configuration: persistence, logging, TLS listener.
-- [ ] Add username/password authentication and per-device ACLs.
-- [ ] Add Compose service and persistent volume for Mosquitto.
-- [ ] Implement device provisioning tokens and claim flow.
-- [ ] Store device secrets encrypted with Fernet.
-- [ ] Implement MQTT credential/ACL synchronisation command.
-- [ ] Implement long-running MQTT worker management command.
-- [ ] Ingest telemetry, heartbeat, status and device events.
-- [ ] Implement Last Will and Testament handling.
-- [ ] Implement command creation, signing, publishing, expiry and acknowledgement.
-- [ ] Implement command execution status reporting.
-- [ ] Implement configuration publish/acknowledge flow.
-- [ ] Add Channels consumers for telemetry, alerts, command status and device status.
-- [ ] Add Celery tasks for command expiry, stale-device detection and notification dispatch.
-- [ ] Add MQTT authentication, replay-protection and signature tests.
-- [ ] Document topic conventions, credentials, ACLs and TLS setup.
+- [x] Finalise Mosquitto configuration: persistence, logging, TLS listener template.
+- [x] Add username/password authentication and per-device ACLs.
+- [x] Add Compose service and persistent data mount for Mosquitto.
+- [x] Implement device provisioning tokens and claim flow.
+- [x] Store device secrets encrypted with Fernet.
+- [x] Implement MQTT credential/ACL synchronisation command.
+- [x] Implement long-running MQTT worker management command.
+- [x] Ingest telemetry, heartbeat, status and device events.
+- [x] Implement Last Will and Testament handling.
+- [x] Implement command creation, signing, publishing, expiry and acknowledgement.
+- [x] Implement command execution status reporting.
+- [x] Implement configuration publish/acknowledge flow.
+- [x] Add Channels consumers for telemetry, alerts, command status and device status.
+- [x] Add Celery tasks for command expiry, stale-device detection and notification dispatch.
+- [x] Add MQTT authentication, replay-protection and signature tests.
+- [x] Document topic conventions, credentials, ACLs and TLS setup.
 
 ### Firmware tasks
 
-- [ ] Create PlatformIO project with Arduino `.ino` entry point.
-- [ ] Implement Wi-Fi manager with reconnect and AP fallback.
-- [ ] Implement MQTT manager with QoS 1, LWT and TLS support.
-- [ ] Implement provisioning and local AP configuration.
-- [ ] Implement local web UI or physical interface for readings and manual controls.
-- [ ] Implement configurable sensor registry and mock sensors.
+- [x] Create PlatformIO project with Arduino `.ino` entry point.
+- [x] Implement Wi-Fi manager with reconnect and AP fallback.
+- [x] Implement MQTT manager with QoS 1, LWT and conditional TLS support.
+- [x] Implement provisioning and local AP configuration.
+- [x] Implement local web UI or physical interface for readings and manual controls (AP fallback portal).
+- [x] Implement configurable sensor registry and mock sensors.
 - [ ] Implement calibrated analog sensors.
-- [ ] Implement actuator manager with safe defaults.
-- [ ] Implement local automation rules.
-- [ ] Implement independent safety controller.
-- [ ] Implement offline LittleFS ring buffer and replay.
-- [ ] Implement signed telemetry and command validation.
-- [ ] Implement command acknowledgements and execution status.
-- [ ] Implement diagnostics and heartbeat.
-- [ ] Add host-testable safety and automation tests.
-- [ ] Document hardware assumptions and unassigned pin map.
+- [x] Implement actuator manager with safe defaults.
+- [x] Implement local automation rules.
+- [x] Implement independent safety controller.
+- [x] Implement offline LittleFS queue and replay.
+- [x] Implement HMAC command validation.
+- [x] Implement signed telemetry envelopes.
+- [x] Implement command acknowledgements and execution status.
+- [x] Implement diagnostics and heartbeat.
+- [x] Add host-testable safety, automation, HMAC, command and telemetry tests.
+- [x] Document hardware assumptions and unassigned pin map.
 
 ### Acceptance criteria
 
@@ -259,26 +262,45 @@ Demo-critical path: **Phase 1 → Phase 2 → Phase 3 → Phase 4**. Phase 5 and
 - MQTT tests pass against a live broker when available; otherwise they are explicitly skipped.
 - No hardware success is claimed without physical testing.
 
+### Verification notes
+
+- [x] Web test suite: 89 tests passing.
+- [x] Ruff, Django checks, migration check, and OpenAPI validation pass.
+- [x] Host firmware core tests pass with `g++` and OpenSSL.
+- [x] Mosquitto configuration, ACL conventions, credential sync, and TLS listener template documented.
+- [ ] Live Mosquitto/Redis/Celery/Channels integration.
+- [ ] PlatformIO target compilation or flashing.
+- [ ] Physical sensor, actuator, relay, and fail-safe validation.
+
 ---
 
 ## 10. Phase 4 — Simulation integration
 
 **Goal:** One telemetry interface for physical and simulated sources.
 
+**Status:** Implemented and covered by API/unit tests. The legacy bridge is
+development-only and the public demo remains unchanged.
+
 ### Tasks
 
-- [ ] Implement `Simulation` and `SimulationRun` models.
-- [ ] Port the planning calculation from `test1.tsx` to a Python service.
-- [ ] Preserve the `SimulationRun` input/output contract.
-- [ ] Implement `POST /api/v1/simulations`.
-- [ ] Add `/api/simulations` compatibility alias.
-- [ ] Implement simulation reading and state ingestion.
-- [ ] Store simulated readings with `source = simulation`.
-- [ ] Add simulation history APIs.
-- [ ] Add realtime simulation state over Channels.
-- [ ] Add legacy bridge for `techsharks-fishpond-7731/readings` in development.
-- [ ] Preserve `fish_pond-live.html` as the canonical demo.
-- [ ] Document frontend embedding and telemetry normalisation.
+- [x] Implement `Simulation` and `SimulationRun` models.
+- [x] Port the planning calculation from `test1.tsx` to a Python service.
+- [x] Preserve the `SimulationRun` input/output contract.
+- [x] Implement `POST /api/v1/simulations`.
+- [x] Add `/api/simulations` compatibility alias.
+- [x] Implement simulation reading and state ingestion.
+- [x] Store simulated readings with `source = simulation`.
+- [x] Add simulation history APIs.
+- [x] Add realtime simulation state over Channels.
+- [x] Add legacy bridge for `techsharks-fishpond-7731/readings` in development.
+- [x] Preserve `fish_pond-live.html` as the canonical demo.
+- [x] Add optional turbidity (`turbidity_ntu`, NTU `0–1000`) to readings, live state,
+  MQTT ingress, sync import and firmware telemetry.
+- [x] Keep water level as a percentage (`0–100`) across API, simulation and UI.
+- [x] Implement the embedded `?embedded=1&pondId=...` postMessage bridge without
+  connecting the embedded page to the public broker.
+- [x] Document frontend embedding, telemetry normalisation and REST polling
+  degradation in `docs/simulations.md`.
 
 ### Acceptance criteria
 
@@ -344,18 +366,23 @@ Demo-critical path: **Phase 1 → Phase 2 → Phase 3 → Phase 4**. Phase 5 and
 
 **Goal:** Backend-backed operation without breaking the current demo.
 
+**Status:** In progress. Authentication, farm records, readings, local import and
+the live pond visualization are backend-backed. Marketplace and community remain
+local-only, and offline mutation queueing and frontend tests are outstanding.
+
 ### Tasks
 
-- [ ] Add a typed API client under `frontend/fishlink/src/api/`.
-- [ ] Add `REACT_APP_API_URL` feature flag.
-- [ ] Keep localStorage as fallback when the API is unavailable.
-- [ ] Map API responses to existing frontend types.
-- [ ] Add local-data import flow.
-- [ ] Integrate authentication, farms, ponds, feedings, readings, marketplace and community.
-- [ ] Integrate simulation runs and live telemetry.
+- [x] Add a typed API client under `frontend/fishlink/src/api/`.
+- [x] Add `REACT_APP_API_URL` feature flag.
+- [x] Keep localStorage as fallback when the API is unavailable.
+- [x] Map API responses to existing frontend types.
+- [x] Add local-data import flow.
+- [x] Integrate authentication, farms, ponds, feedings and readings.
+- [ ] Integrate marketplace and community.
+- [x] Integrate simulation runs and live telemetry.
 - [ ] Add offline queueing and retry for frontend mutations.
 - [ ] Add tests for API mapping and fallback behaviour.
-- [ ] Do not delete `test1.tsx` without explicit approval.
+- [x] Do not delete `test1.tsx` without explicit approval.
 
 ### Acceptance criteria
 
@@ -363,6 +390,8 @@ Demo-critical path: **Phase 1 → Phase 2 → Phase 3 → Phase 4**. Phase 5 and
 - The app works against the backend when configured.
 - Existing local data can be imported once without duplicates.
 - No UI regression in the current demo path.
+- Live pond data remains usable through REST polling when Redis/WebSockets are
+  unavailable.
 
 ---
 

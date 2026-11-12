@@ -151,6 +151,7 @@ REST_FRAMEWORK = {
         "register": "10/min",
         "password": "5/min",
         "telemetry": "600/min",
+        "provision": "10/min",
     },
 }
 
@@ -204,17 +205,42 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TIMEZONE = "UTC"
-CELERY_BEAT_SCHEDULE: dict = {}
+CELERY_BEAT_SCHEDULE = {
+    "expire-device-commands": {
+        "task": "apps.commands.tasks.expire_device_commands",
+        "schedule": 60.0,
+    },
+    "mark-stale-devices": {
+        "task": "apps.devices.tasks.mark_stale_devices",
+        "schedule": 60.0,
+    },
+    "dispatch-pending-notifications": {
+        "task": "apps.notifications.tasks.dispatch_pending_notifications",
+        "schedule": 60.0,
+    },
+}
 
 MQTT_HOST = env.str("MQTT_HOST", default="localhost")
 MQTT_PORT = env.int("MQTT_PORT", default=1883)
 MQTT_TLS = env.bool("MQTT_TLS", default=False)
+MQTT_CA_CERTS = env.str("MQTT_CA_CERTS", default="")
 MQTT_USERNAME = env.str("MQTT_USERNAME", default="aquasafe-backend")
 MQTT_PASSWORD = env.str("MQTT_PASSWORD", default="")
 MQTT_TOPIC_PREFIX = env.str("MQTT_TOPIC_PREFIX", default="aquasafe/v1")
 MQTT_QOS = env.int("MQTT_QOS", default=1)
 MQTT_KEEPALIVE = env.int("MQTT_KEEPALIVE", default=60)
+SIMULATION_LEGACY_BRIDGE_ENABLED = env.bool("SIMULATION_LEGACY_BRIDGE_ENABLED", default=False)
+SIMULATION_LEGACY_BRIDGE_POND_ID = env.str("SIMULATION_LEGACY_BRIDGE_POND_ID", default="")
+SIMULATION_LEGACY_MQTT_HOST = env.str("SIMULATION_LEGACY_MQTT_HOST", default="broker.hivemq.com")
+SIMULATION_LEGACY_MQTT_PORT = env.int("SIMULATION_LEGACY_MQTT_PORT", default=1883)
+SIMULATION_LEGACY_TOPIC = env.str(
+    "SIMULATION_LEGACY_TOPIC", default="techsharks-fishpond-7731/readings"
+)
 DEVICE_SECRET_ENCRYPTION_KEY = env.str("DEVICE_SECRET_ENCRYPTION_KEY", default="")
+DEVICE_STALE_AFTER_SECONDS = env.int("DEVICE_STALE_AFTER_SECONDS", default=180)
+NOTIFICATION_EMAIL_ENABLED = env.bool("NOTIFICATION_EMAIL_ENABLED", default=False)
+NOTIFICATION_BATCH_SIZE = env.int("NOTIFICATION_BATCH_SIZE", default=100)
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="AquaSafe <alerts@localhost>")
 
 LOGGING = {
     "version": 1,
